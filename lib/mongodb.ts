@@ -1,7 +1,6 @@
 import mongoose from 'mongoose'
 
-// 核心知识点：连接池
-// 和Prisma一样，防止热重载时创建多个连接
+// Connection pooling: reuse existing connection across hot reloads (same pattern as Prisma)
 const MONGODB_URL = process.env.MONGODB_URL!
 
 if (!MONGODB_URL) {

@@ -19,9 +19,9 @@ export const GET = withAuth(async (req, user) => {
     return NextResponse.json({ accounts })
 
   } catch (error) {
-    console.error('获取账户失败:', error)
+    console.error('Failed to fetch accounts:', error)
     return NextResponse.json(
-      { error: '服务器错误' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

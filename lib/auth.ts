@@ -9,6 +9,7 @@ export interface AuthUser {
 
 type Handler = (req: NextRequest, user: AuthUser) => Promise<NextResponse>
 
+// Authentication middleware: verifies JWT from Authorization header
 export function withAuth(handler: Handler) {
   return async (req: NextRequest): Promise<NextResponse> => {
     try {
@@ -16,7 +17,7 @@ export function withAuth(handler: Handler) {
 
       if (!authHeader?.startsWith('Bearer ')) {
         return NextResponse.json(
-          { error: '未登录' },
+          { error: 'Authentication required' },
           { status: 401 }
         )
       }
@@ -32,19 +33,20 @@ export function withAuth(handler: Handler) {
 
     } catch {
       return NextResponse.json(
-        { error: 'Token无效或已过期' },
+        { error: 'Invalid or expired token' },
         { status: 401 }
       )
     }
   }
 }
 
+// RBAC middleware: checks if the user's role is in the allowed list
 export function withRole(allowedRoles: string[]) {
   return (handler: Handler) => {
     return withAuth(async (req, user) => {
       if (!allowedRoles.includes(user.role)) {
         return NextResponse.json(
-          { error: '权限不足' },
+          { error: 'Insufficient permissions' },
           { status: 403 }
         )
       }

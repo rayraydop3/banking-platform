@@ -31,7 +31,7 @@ describe('POST /api/auth/register', () => {
     jest.clearAllMocks()
   })
 
-  it('邮箱已存在时返回 400', async () => {
+  it('should return 400 when email already exists', async () => {
     ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'u1',
       email: 'exist@test.com',
@@ -46,10 +46,10 @@ describe('POST /api/auth/register', () => {
     const data = await res.json()
 
     expect(res.status).toBe(400)
-    expect(data.error).toContain('邮箱')
+    expect(data.error).toContain('already registered')
   })
 
-  it('注册成功时返回 201 和用户信息', async () => {
+  it('should return 201 with user info on successful registration', async () => {
     ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(null)
     ;(prisma.user.create as jest.Mock).mockResolvedValue({
       id: 'u1',

@@ -10,7 +10,7 @@ async function main() {
     create: {
       email: 'test@example.com',
       password: await hash('password123', 12),
-      name: '测试用户',
+      name: 'Test User',
       mfaEnabled: false,
     },
   })
@@ -21,7 +21,7 @@ async function main() {
     create: {
       email: 'admin@example.com',
       password: await hash('admin123', 12),
-      name: '管理员',
+      name: 'Admin',
       mfaEnabled: false,
     },
   })
@@ -41,11 +41,11 @@ async function main() {
     })
   }
 
-  console.log('✅ 种子数据已创建')
+  console.log('Seed data created successfully')
   console.log('')
-  console.log('测试账号：')
-  console.log('  邮箱: test@example.com  密码: password123')
-  console.log('  邮箱: admin@example.com 密码: admin123')
+  console.log('Test accounts:')
+  console.log('  Email: test@example.com  Password: password123')
+  console.log('  Email: admin@example.com Password: admin123')
   console.log('')
 }
 

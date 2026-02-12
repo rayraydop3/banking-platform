@@ -1,31 +1,31 @@
 import mongoose from 'mongoose'
 
-// 核心知识点：MongoDB Schema
-// 不像PostgreSQL需要migration，MongoDB可以随时改结构
-// Schema定义文档的"形状"，但不强制
+// MongoDB Schema for user sessions
+// Unlike PostgreSQL which requires migrations, MongoDB schemas are flexible
+// The schema defines the document "shape" but doesn't strictly enforce it
 const sessionSchema = new mongoose.Schema({
   userId: { 
     type: String, 
     required: true,
-    index: true  // 加索引，加速按userId查询
+    index: true  // Index for faster lookups by userId
   },
   token: { 
     type: String, 
     required: true 
   },
-  userAgent: String,   // 浏览器信息
-  ipAddress: String,   // IP地址
+  userAgent: String,   // Browser/client info
+  ipAddress: String,   // Client IP address
   createdAt: { 
     type: Date, 
     default: Date.now,
-    expires: 604800  // 7天后自动删除（TTL索引）
+    expires: 604800  // TTL index: auto-delete after 7 days (in seconds)
   }
 })
 
-// 核心知识点：TTL索引
-// expires: 604800 = 7天（秒）
-// MongoDB会自动删除过期的session
-// 不需要手动清理，很适合session管理
+// TTL (Time-To-Live) Index:
+// expires: 604800 = 7 days in seconds
+// MongoDB automatically deletes expired sessions
+// No manual cleanup needed — ideal for session management
 
 export const Session = mongoose.models.Session || 
   mongoose.model('Session', sessionSchema)

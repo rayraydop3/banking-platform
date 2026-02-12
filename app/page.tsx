@@ -40,11 +40,11 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || '操作失败')
+        setError(data.error || 'Operation failed')
         return
       }
 
-      // 需要MFA验证
+      // MFA verification required
       if (data.needsMfa) {
         setTempToken(data.tempToken)
         setShowMfaInput(true)
@@ -52,15 +52,15 @@ export default function LoginPage() {
         return
       }
 
-      // 保存token到localStorage
+      // Save token to localStorage
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
 
-      // 跳转到dashboard
+      // Redirect to dashboard
       router.push('/dashboard')
 
     } catch {
-      setError('网络错误，请重试')
+      setError('Network error, please try again')
     } finally {
       setLoading(false)
     }
@@ -81,7 +81,7 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || '验证码错误')
+        setError(data.error || 'Invalid verification code')
         return
       }
 
@@ -89,50 +89,54 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(data.user))
       router.push('/dashboard')
     } catch {
-      setError('网络错误，请重试')
+      setError('Network error, please try again')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            🏦 Banking Platform
+        {/* Brand */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-lg mb-4">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-2m0-14V3m-7 8H3m18 0h-2M7.05 7.05L5.636 5.636m12.728 12.728L16.95 16.95M7.05 16.95l-1.414 1.414M18.364 5.636L16.95 7.05" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-semibold text-white tracking-tight">
+            Banking Platform
           </h1>
-          <p className="text-gray-400 mt-2">
-            Digital Banking for Everyone
+          <p className="text-slate-400 text-sm mt-1">
+            Secure Digital Banking
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-gray-800 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-8">
           {showMfaInput ? (
-            /* MFA 验证表单 */
             <>
               <div className="mb-6">
-                <h2 className="text-lg font-semibold text-white">双重验证</h2>
-                <p className="text-gray-400 text-sm mt-1">
-                  请输入 Google Authenticator 中的 6 位验证码
+                <h2 className="text-base font-medium text-white">Two-Factor Authentication</h2>
+                <p className="text-slate-400 text-sm mt-1">
+                  Enter the 6-digit code from your authenticator app
                 </p>
               </div>
               {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-400 rounded-lg p-3 mb-4 text-sm">
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-md p-3 mb-4 text-sm">
                   {error}
                 </div>
               )}
               <form onSubmit={handleMfaSubmit} className="space-y-4">
                 <div>
-                  <label className="text-gray-400 text-sm mb-1 block">验证码</label>
+                  <label className="text-slate-400 text-sm mb-1.5 block">Verification Code</label>
                   <input
                     type="text"
                     value={mfaCode}
                     onChange={e => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-xl tracking-widest"
-                    placeholder="000000"
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-center text-lg tracking-[0.3em] font-mono"
+                    placeholder="------"
                     maxLength={6}
                     required
                   />
@@ -140,9 +144,9 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading || mfaCode.length !== 6}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 rounded-lg transition-colors"
+                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white text-sm font-medium py-2.5 rounded-md transition-colors"
                 >
-                  {loading ? '验证中...' : '验证'}
+                  {loading ? 'Verifying...' : 'Verify'}
                 </button>
                 <button
                   type="button"
@@ -152,102 +156,104 @@ export default function LoginPage() {
                     setMfaCode('')
                     setError('')
                   }}
-                  className="w-full text-gray-400 hover:text-white text-sm py-2"
+                  className="w-full text-slate-400 hover:text-white text-sm py-2 transition-colors"
                 >
-                  返回重新登录
+                  Back to Sign In
                 </button>
               </form>
             </>
           ) : (
             <>
-              {/* Tab切换 */}
-              <div className="flex bg-gray-700 rounded-xl p-1 mb-6">
+              {/* Tab Switcher */}
+              <div className="flex border-b border-slate-700 mb-6">
                 <button
                   onClick={() => setIsLogin(true)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex-1 pb-3 text-sm font-medium transition-colors border-b-2 ${
                     isLogin 
-                      ? 'bg-blue-600 text-white' 
-                      : 'text-gray-400 hover:text-white'
+                      ? 'text-white border-blue-500' 
+                      : 'text-slate-400 border-transparent hover:text-white'
                   }`}
                 >
-                  登录
+                  Sign In
                 </button>
                 <button
                   onClick={() => setIsLogin(false)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex-1 pb-3 text-sm font-medium transition-colors border-b-2 ${
                     !isLogin 
-                      ? 'bg-blue-600 text-white' 
-                      : 'text-gray-400 hover:text-white'
+                      ? 'text-white border-blue-500' 
+                      : 'text-slate-400 border-transparent hover:text-white'
                   }`}
                 >
-                  注册
+                  Create Account
                 </button>
               </div>
 
-              {/* 错误提示 */}
               {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-400 rounded-lg p-3 mb-4 text-sm">
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-md p-3 mb-4 text-sm">
                   {error}
                 </div>
               )}
 
-              {/* 表单 */}
               <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div>
-                <label className="text-gray-400 text-sm mb-1 block">
-                  姓名
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={e => setForm({...form, name: e.target.value})}
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Your Name"
-                  required={!isLogin}
-                />
-              </div>
-            )}
+                {!isLogin && (
+                  <div>
+                    <label className="text-slate-400 text-sm mb-1.5 block">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={e => setForm({...form, name: e.target.value})}
+                      className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="John Smith"
+                      required={!isLogin}
+                    />
+                  </div>
+                )}
 
-            <div>
-              <label className="text-gray-400 text-sm mb-1 block">
-                邮箱
-              </label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={e => setForm({...form, email: e.target.value})}
-                className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="email@example.com"
-                required
-              />
-            </div>
+                <div>
+                  <label className="text-slate-400 text-sm mb-1.5 block">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={e => setForm({...form, email: e.target.value})}
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="name@company.com"
+                    required
+                  />
+                </div>
 
-            <div>
-              <label className="text-gray-400 text-sm mb-1 block">
-                密码
-              </label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={e => setForm({...form, password: e.target.value})}
-                className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+                <div>
+                  <label className="text-slate-400 text-sm mb-1.5 block">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={e => setForm({...form, password: e.target.value})}
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="Minimum 8 characters"
+                    required
+                  />
+                </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 rounded-lg transition-colors"
-            >
-              {loading ? '处理中...' : isLogin ? '登录' : '注册'}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white text-sm font-medium py-2.5 rounded-md transition-colors"
+                >
+                  {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
+                </button>
+              </form>
             </>
           )}
         </div>
+
+        <p className="text-slate-600 text-xs text-center mt-6">
+          Protected by industry-standard encryption
+        </p>
       </div>
     </div>
   )

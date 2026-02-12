@@ -35,7 +35,7 @@ describe('POST /api/auth/login', () => {
     jest.clearAllMocks()
   })
 
-  it('邮箱或密码错误时返回 401', async () => {
+  it('should return 401 when email does not exist', async () => {
     ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(null)
 
     const req = createMockRequest({ email: 'wrong@test.com', password: '12345678' })
@@ -43,10 +43,10 @@ describe('POST /api/auth/login', () => {
     const data = await res.json()
 
     expect(res.status).toBe(401)
-    expect(data.error).toContain('邮箱或密码错误')
+    expect(data.error).toContain('Invalid email or password')
   })
 
-  it('密码错误时返回 401', async () => {
+  it('should return 401 when password is incorrect', async () => {
     ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'u1',
       email: 'test@test.com',
@@ -62,10 +62,10 @@ describe('POST /api/auth/login', () => {
     const data = await res.json()
 
     expect(res.status).toBe(401)
-    expect(data.error).toContain('邮箱或密码错误')
+    expect(data.error).toContain('Invalid email or password')
   })
 
-  it('密码正确且未启用 MFA 时返回 token', async () => {
+  it('should return token when credentials are valid and MFA is disabled', async () => {
     ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'u1',
       email: 'test@test.com',
@@ -87,7 +87,7 @@ describe('POST /api/auth/login', () => {
     expect(data.user.email).toBe('test@test.com')
   })
 
-  it('已启用 MFA 时返回 needsMfa 和 tempToken', async () => {
+  it('should return needsMfa and tempToken when MFA is enabled', async () => {
     ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'u1',
       email: 'test@test.com',

@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { tempToken, code } = mfaLoginSchema.parse(body)
 
-    // 1. 验证tempToken
+    // 1. Verify the temporary token
     let decoded: { userId: string; email: string; purpose?: string }
     try {
       decoded = verify(
@@ -25,19 +25,19 @@ export async function POST(req: NextRequest) {
       ) as { userId: string; email: string; purpose?: string }
     } catch {
       return NextResponse.json(
-        { error: '验证已过期，请重新登录' },
+        { error: 'Verification expired, please log in again' },
         { status: 401 }
       )
     }
 
     if (decoded.purpose !== 'mfa_pending') {
       return NextResponse.json(
-        { error: '无效的验证请求' },
+        { error: 'Invalid verification request' },
         { status: 401 }
       )
     }
 
-    // 2. 获取用户并验证MFA
+    // 2. Fetch user and verify MFA code
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       include: { accounts: true }
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     if (!user?.mfaSecret || !user.mfaEnabled) {
       return NextResponse.json(
-        { error: '请先完成MFA设置' },
+        { error: 'Please complete MFA setup first' },
         { status: 400 }
       )
     }
@@ -57,19 +57,19 @@ export async function POST(req: NextRequest) {
 
     if (!result.valid) {
       return NextResponse.json(
-        { error: '验证码错误或已过期' },
+        { error: 'Invalid or expired verification code' },
         { status: 401 }
       )
     }
 
-    // 3. 签发正式token（带上 role，供 RBAC 校验）
+    // 3. Issue full JWT with role for RBAC
     const token = sign(
       { userId: user.id, email: user.email, role: (user as { role?: string }).role ?? 'USER' },
       process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     )
 
-    // 4. 存Session到MongoDB
+    // 4. Store session in MongoDB
     await connectMongoDB()
     await Session.create({
       userId: user.id,
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({
-      message: '登录成功',
+      message: 'Login successful',
       token,
       user: {
         id: user.id,
@@ -91,13 +91,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '输入数据有误' },
+        { error: 'Invalid input data' },
         { status: 400 }
       )
     }
-    console.error('MFA登录失败:', error)
+    console.error('MFA login failed:', error)
     return NextResponse.json(
-      { error: '服务器错误' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

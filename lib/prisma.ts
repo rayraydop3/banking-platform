@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 
-// 防止开发环境热重载时创建多个连接
+// Prevent creating multiple Prisma connections during hot reload in development
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }

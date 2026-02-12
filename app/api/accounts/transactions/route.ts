@@ -7,9 +7,9 @@ import { z } from 'zod'
 const transactionSchema = z.object({
   accountId: z.string(),
   type: z.enum(['deposit', 'withdrawal', 'transfer']),
-  amount: z.number().positive('金额必须大于0'),
+  amount: z.number().positive('Amount must be greater than 0'),
   description: z.string().optional(),
-  toAccountId: z.string().optional(), // 转账时用
+  toAccountId: z.string().optional(), // Required for transfers
 })
 
 export const POST = withAuth(async (req, user) => {
@@ -18,7 +18,7 @@ export const POST = withAuth(async (req, user) => {
     const { accountId, type, amount, description, toAccountId } 
       = transactionSchema.parse(body)
 
-    // 验证账户属于当前用户
+    // Verify the account belongs to the current user
     const account = await prisma.account.findFirst({
       where: { 
         id: accountId,
@@ -28,71 +28,67 @@ export const POST = withAuth(async (req, user) => {
 
     if (!account) {
       return NextResponse.json(
-        { error: '账户不存在' },
+        { error: 'Account not found' },
         { status: 404 }
       )
     }
 
-    // ===== 核心知识点：PostgreSQL事务（两阶段提交） =====
-    // 什么是事务？一组操作要么全部成功，要么全部失败
-    // 比如转账：扣钱 + 加钱，必须同时成功
-    // 如果扣钱成功但加钱失败，钱就消失了！
+    // ===== PostgreSQL Transactions (Atomicity) =====
+    // A transaction is a group of operations that either all succeed or all fail.
+    // For example, in a transfer: debit + credit must both succeed.
+    // If debit succeeds but credit fails, money would disappear!
     //
-    // prisma.$transaction() 就是事务
-    // 里面所有操作要么全成功，要么全回滚
-    //
-    // 两阶段提交协议：
-    // 第一阶段（准备）：检查余额是否足够
-    // 第二阶段（提交）：执行扣款和加款
+    // prisma.$transaction() wraps operations in a transaction.
+    // All operations inside either commit together or rollback entirely.
 
     if (type === 'transfer') {
-      // 转账逻辑
+      // Transfer logic
       if (!toAccountId) {
         return NextResponse.json(
-          { error: '转账需要目标账户' },
+          { error: 'Target account is required for transfers' },
           { status: 400 }
         )
       }
 
       if (account.balance < amount) {
         return NextResponse.json(
-          { error: '余额不足' },
+          { error: 'Insufficient balance' },
           { status: 400 }
         )
       }
 
-      // 用事务确保数据一致性
+      // Use a transaction to ensure data consistency
       const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        // 1. 扣除源账户余额
+        // 1. Deduct from source account
         const fromAccount = await tx.account.update({
           where: { id: accountId },
           data: { balance: { decrement: amount } }
         })
 
-        // 2. 增加目标账户余额
+        // 2. Add to target account
         const toAccount = await tx.account.update({
           where: { id: toAccountId },
           data: { balance: { increment: amount } }
         })
 
-        // 3. 创建源账户交易记录
+        // 3. Create transaction record for source account
         const fromTransaction = await tx.transaction.create({
           data: {
             accountId,
             type: 'transfer',
             amount: -amount,
-            description: description || `转账到 ${toAccountId}`,
+            description: description || `Transfer to ${toAccountId}`,
             status: 'completed'
           }
         })
 
-        // 4. 创建目标账户交易记录
+        // 4. Create transaction record for target account
         await tx.transaction.create({
           data: {
             accountId: toAccountId,
             type: 'transfer',
             amount,
-            description: description || `来自 ${accountId} 的转账`,
+            description: description || `Transfer from ${accountId}`,
             status: 'completed'
           }
         })
@@ -101,12 +97,12 @@ export const POST = withAuth(async (req, user) => {
       })
 
       return NextResponse.json({
-        message: '转账成功',
+        message: 'Transfer successful',
         transaction: result.fromTransaction
       })
 
     } else if (type === 'deposit') {
-      // 存款逻辑
+      // Deposit logic
       const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const updatedAccount = await tx.account.update({
           where: { id: accountId },
@@ -118,7 +114,7 @@ export const POST = withAuth(async (req, user) => {
             accountId,
             type: 'deposit',
             amount,
-            description: description || '存款',
+            description: description || 'Deposit',
             status: 'completed'
           }
         })
@@ -127,7 +123,7 @@ export const POST = withAuth(async (req, user) => {
       })
 
       return NextResponse.json({
-        message: '存款成功',
+        message: 'Deposit successful',
         account: result.account,
         transaction: result.transaction
       })
@@ -135,7 +131,7 @@ export const POST = withAuth(async (req, user) => {
     } else if (type === 'withdrawal') {
         if (account.balance < amount) {
           return NextResponse.json(
-            { error: '余额不足' },
+            { error: 'Insufficient balance' },
             { status: 400 }
           )
         }
@@ -151,7 +147,7 @@ export const POST = withAuth(async (req, user) => {
               accountId,
               type: 'withdrawal',
               amount: -amount,
-              description: description || '取款',
+              description: description || 'Withdrawal',
               status: 'completed'
             }
           })
@@ -160,29 +156,29 @@ export const POST = withAuth(async (req, user) => {
         })
   
         return NextResponse.json({
-          message: '取款成功',
+          message: 'Withdrawal successful',
           account: result.account,
           transaction: result.transaction
         })
       }
   
-      // 加这行！
+      // Fallback for invalid transaction type
       return NextResponse.json(
-        { error: '无效的交易类型' },
+        { error: 'Invalid transaction type' },
         { status: 400 }
       )
   
     } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json(
-          { error: '输入数据有误' },
+          { error: 'Invalid input data' },
           { status: 400 }
         )
       }
   
-      console.error('交易失败:', error)
+      console.error('Transaction failed:', error)
       return NextResponse.json(
-        { error: '服务器错误' },
+        { error: 'Internal server error' },
         { status: 500 }
       )
     }

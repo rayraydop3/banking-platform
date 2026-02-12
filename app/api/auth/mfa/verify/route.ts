@@ -12,21 +12,21 @@ export const POST = withAuth(async (req, user) => {
   try {
     const { code } = verifySchema.parse(await req.json())
     
-    // 1. 从数据库获取secret
+    // 1. Retrieve the MFA secret from the database
     const dbUser = await prisma.user.findUnique({
       where: { id: user.userId }
     })
     
     if (!dbUser?.mfaSecret) {
       return NextResponse.json(
-        { error: '请先设置MFA' },
+        { error: 'Please set up MFA first' },
         { status: 400 }
       )
     }
     
-    // 2. 验证6位数字是否正确
-    // 核心知识点：verify() 是异步函数
-    // 用secret + 当前时间生成预期code，和用户输入的比对
+    // 2. Verify the 6-digit TOTP code
+    // verifyOTP() compares the user's code against the expected code
+    // generated from the secret + current time window
     const result = await verifyOTP({
       token: code,
       secret: dbUser.mfaSecret,
@@ -35,23 +35,23 @@ export const POST = withAuth(async (req, user) => {
     
     if (!isValid) {
       return NextResponse.json(
-        { error: '验证码错误或已过期' },
+        { error: 'Invalid or expired verification code' },
         { status: 401 }
       )
     }
     
-    // 3. 启用MFA
+    // 3. Enable MFA for the user
     await prisma.user.update({
       where: { id: user.userId },
       data: { mfaEnabled: true }
     })
     
-    return NextResponse.json({ message: 'MFA启用成功' })
+    return NextResponse.json({ message: 'MFA enabled successfully' })
     
   } catch (error) {
-    console.error('MFA verify失败:', error)
+    console.error('MFA verification failed:', error)
     return NextResponse.json(
-      { error: '服务器错误' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

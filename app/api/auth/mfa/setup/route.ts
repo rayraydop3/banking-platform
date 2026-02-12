@@ -6,35 +6,35 @@ import { withAuth } from '@/lib/auth'
 
 export const POST = withAuth(async (req, user) => {
   try {
-    // 1. 生成secret密钥
+    // 1. Generate a TOTP secret key
     const secret = generateSecret()
     
-    // 2. 生成TOTP URI（给Google Authenticator用）
+    // 2. Generate TOTP URI for Google Authenticator
     const otpauth = generateURI({
       issuer: 'Banking Platform',
       label: user.email,
       secret,
     })
     
-    // 3. 把secret临时存到数据库（未启用状态）
+    // 3. Store the secret in the database (MFA not yet enabled)
     await prisma.user.update({
       where: { id: user.userId },
       data: { mfaSecret: secret }
     })
     
-    // 4. 生成QR码图片（base64格式）
+    // 4. Generate QR code image in base64 format
     const qrCodeUrl = await QRCode.toDataURL(otpauth)
     
     return NextResponse.json({
-      message: '请用Google Authenticator扫描二维码',
-      qrCode: qrCodeUrl,  // 前端显示这个图片
-      secret,             // 也返回secret，方便手动输入
+      message: 'Scan the QR code with Google Authenticator',
+      qrCode: qrCodeUrl,   // Display this image on the frontend
+      secret,               // Also return secret for manual entry
     })
     
   } catch (error) {
-    console.error('MFA setup失败:', error)
+    console.error('MFA setup failed:', error)
     return NextResponse.json(
-      { error: '服务器错误' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

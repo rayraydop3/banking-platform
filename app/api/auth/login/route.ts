@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { email, password } = loginSchema.parse(body)
 
-    // 1. 查找用户
+    // 1. Find user by email
     const user = await prisma.user.findUnique({
       where: { email },
       include: { accounts: true }
@@ -24,21 +24,21 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: '邮箱或密码错误' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       )
     }
 
-    // 2. 验证密码
+    // 2. Verify password
     const isValid = await compare(password, user.password)
     if (!isValid) {
       return NextResponse.json(
-        { error: '邮箱或密码错误' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       )
     }
 
-    // 3. 若已启用MFA，返回tempToken，不签发正式token
+    // 3. If MFA is enabled, return a temporary token instead of a full JWT
     if (user.mfaEnabled) {
       const tempToken = sign(
         { userId: user.id, email: user.email, purpose: 'mfa_pending' },
@@ -52,14 +52,14 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 4. 生成正式JWT（带上 role，供 RBAC 校验）
+    // 4. Issue full JWT with role for RBAC
     const token = sign(
       { userId: user.id, email: user.email, role: (user as { role?: string }).role ?? 'USER' },
       process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     )
 
-    // 5. 存Session到MongoDB
+    // 5. Store session in MongoDB
     await connectMongoDB()
     await Session.create({
       userId: user.id,
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({
-      message: '登录成功',
+      message: 'Login successful',
       token,
       user: {
         id: user.id,
@@ -82,13 +82,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '输入数据有误' },
+        { error: 'Invalid input data' },
         { status: 400 }
       )
     }
-    console.error('登录失败:', error)
+    console.error('Login failed:', error)
     return NextResponse.json(
-      { error: '服务器错误' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

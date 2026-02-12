@@ -44,6 +44,7 @@ export default function Dashboard() {
   })
   const [transactionLoading, setTransactionLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const [portfolios, setPortfolios] = useState<PortfolioItem[]>([])
   const [showPortfolioModal, setShowPortfolioModal] = useState(false)
   const [portfolioForm, setPortfolioForm] = useState({ action: 'buy' as 'buy' | 'sell', symbol: '', shares: '', price: '' })
@@ -108,15 +109,18 @@ export default function Dashboard() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setMessage(`❌ ${data.error}`)
+        setMessageType('error')
+        setMessage(data.error)
       } else {
-        setMessage(`✅ ${data.message}`)
+        setMessageType('success')
+        setMessage(data.message)
         setTransactionForm({ type: 'deposit', amount: '', description: '', toAccountId: '' })
         fetchAccounts()
         setTimeout(() => setShowTransactionModal(false), 1500)
       }
     } catch {
-      setMessage('❌ 网络错误')
+      setMessageType('error')
+      setMessage('Network error')
     } finally {
       setTransactionLoading(false)
     }
@@ -152,15 +156,18 @@ export default function Dashboard() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setMessage(`❌ ${data.error}`)
+        setMessageType('error')
+        setMessage(data.error)
       } else {
-        setMessage(`✅ ${data.message}`)
+        setMessageType('success')
+        setMessage(data.message)
         setPortfolioForm({ action: 'buy', symbol: '', shares: '', price: '' })
         fetchPortfolios()
         setTimeout(() => setShowPortfolioModal(false), 1500)
       }
     } catch {
-      setMessage('❌ 网络错误')
+      setMessageType('error')
+      setMessage('Network error')
     } finally {
       setPortfolioLoading(false)
     }
@@ -168,9 +175,11 @@ export default function Dashboard() {
 
   const stockNames: Record<string, string> = {
     AAPL: 'Apple Inc.',
-    MSFT: 'Microsoft',
-    GOOGL: 'Alphabet',
-    TSLA: 'Tesla',
+    MSFT: 'Microsoft Corp.',
+    GOOGL: 'Alphabet Inc.',
+    TSLA: 'Tesla Inc.',
+    AMZN: 'Amazon.com Inc.',
+    NVDA: 'NVIDIA Corp.',
   }
 
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0)
@@ -187,32 +196,44 @@ export default function Dashboard() {
   ]
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-white text-xl animate-pulse">Loading...</div>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="text-slate-400 text-sm">Loading your accounts...</div>
     </div>
   )
 
+  const tabLabels: Record<string, string> = {
+    overview: 'Overview',
+    transactions: 'Transactions',
+    portfolio: 'Portfolio',
+  }
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-slate-950 text-white">
       {/* Navbar */}
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-4 sticky top-0 z-10">
+      <nav className="bg-slate-900 border-b border-slate-800 px-6 py-3.5 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold">🏦 Banking Platform</h1>
-          <div className="flex items-center gap-6">
-            {['overview', 'transactions', 'portfolio'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`text-sm font-medium capitalize transition-colors ${
-                  activeTab === tab ? 'text-blue-400' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-            <span className="text-gray-400 text-sm">Hi, {user?.name}</span>
-            <button onClick={handleLogout} className="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg text-sm">
-              Logout
+          <div className="flex items-center gap-8">
+            <h1 className="text-base font-semibold tracking-tight">Banking Platform</h1>
+            <div className="flex items-center gap-1">
+              {['overview', 'transactions', 'portfolio'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === tab
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
+                >
+                  {tabLabels[tab]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-slate-400 text-sm">{user?.name || user?.email}</span>
+            <button onClick={handleLogout} className="text-slate-400 hover:text-white text-sm transition-colors">
+              Sign Out
             </button>
           </div>
         </div>
@@ -223,30 +244,30 @@ export default function Dashboard() {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Total Balance Hero */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8">
-              <p className="text-blue-200 text-sm mb-2">Total Balance</p>
-              <h2 className="text-5xl font-bold mb-3">
+            {/* Total Balance */}
+            <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
+              <p className="text-slate-400 text-sm mb-1">Total Balance</p>
+              <h2 className="text-4xl font-semibold tracking-tight mb-4">
                 AUD {totalBalance.toLocaleString('en-AU', { minimumFractionDigits: 2 })}
               </h2>
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button
-                  onClick={() => { setTransactionForm({...transactionForm, type: 'deposit'}); setShowTransactionModal(true) }}
-                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  onClick={() => { setTransactionForm({...transactionForm, type: 'deposit'}); setShowTransactionModal(true); setMessage('') }}
+                  className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  + Deposit
+                  Deposit
                 </button>
                 <button
-                  onClick={() => { setTransactionForm({...transactionForm, type: 'withdrawal'}); setShowTransactionModal(true) }}
-                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  onClick={() => { setTransactionForm({...transactionForm, type: 'withdrawal'}); setShowTransactionModal(true); setMessage('') }}
+                  className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  - Withdraw
+                  Withdraw
                 </button>
                 <button
-                  onClick={() => { setTransactionForm({...transactionForm, type: 'transfer'}); setShowTransactionModal(true) }}
-                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  onClick={() => { setTransactionForm({...transactionForm, type: 'transfer'}); setShowTransactionModal(true); setMessage('') }}
+                  className="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  ↔ Transfer
+                  Transfer
                 </button>
               </div>
             </div>
@@ -254,15 +275,15 @@ export default function Dashboard() {
             {/* Account Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {accounts.map(account => (
-                <div key={account.id} className="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-blue-500 transition-colors">
+                <div key={account.id} className="bg-slate-900 border border-slate-800 rounded-lg p-5 hover:border-slate-700 transition-colors">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <p className="text-gray-400 text-xs uppercase tracking-widest">{account.accountType}</p>
-                      <p className="text-gray-500 text-xs mt-1 font-mono">{account.accountNumber}</p>
+                      <p className="text-slate-400 text-xs uppercase tracking-wider font-medium">{account.accountType}</p>
+                      <p className="text-slate-500 text-xs mt-1 font-mono">{account.accountNumber}</p>
                     </div>
-                    <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full">● Active</span>
+                    <span className="text-green-400 text-xs font-medium">Active</span>
                   </div>
-                  <p className="text-3xl font-bold">
+                  <p className="text-2xl font-semibold">
                     {account.currency} {account.balance.toLocaleString('en-AU', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -270,53 +291,53 @@ export default function Dashboard() {
             </div>
 
             {/* Balance Chart */}
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold mb-1">Balance Trend</h3>
-              <p className="text-gray-400 text-sm mb-4">6 month overview</p>
-              <ResponsiveContainer width="100%" height={220}>
+            <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
+              <h3 className="text-sm font-medium mb-1">Balance Trend</h3>
+              <p className="text-slate-500 text-xs mb-4">Last 6 months</p>
+              <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.15}/>
                       <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="month" stroke="#6B7280" />
-                  <YAxis stroke="#6B7280" />
-                  <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
-                  <Area type="monotone" dataKey="balance" stroke="#3B82F6" fill="url(#balanceGradient)" strokeWidth={2} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                  <XAxis dataKey="month" stroke="#475569" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#475569" tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1E293B', borderRadius: '6px', fontSize: '12px' }} />
+                  <Area type="monotone" dataKey="balance" stroke="#3B82F6" fill="url(#balanceGradient)" strokeWidth={1.5} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
 
             {/* Recent Transactions */}
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Recent Transactions</h3>
-                <button onClick={() => setActiveTab('transactions')} className="text-blue-400 text-sm hover:text-blue-300">
-                  View all →
+                <h3 className="text-sm font-medium">Recent Transactions</h3>
+                <button onClick={() => setActiveTab('transactions')} className="text-blue-400 text-xs hover:text-blue-300 transition-colors">
+                  View all
                 </button>
               </div>
               {allTransactions.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No transactions yet</p>
+                <p className="text-slate-500 text-sm text-center py-8">No transactions yet</p>
               ) : (
-                <div className="space-y-1">
+                <div>
                   {allTransactions.slice(0, 5).map(tx => (
-                    <div key={tx.id} className="flex items-center justify-between py-3 border-b border-gray-700/50 last:border-0">
+                    <div key={tx.id} className="flex items-center justify-between py-3 border-b border-slate-800 last:border-0">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm ${
-                          tx.amount > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                        <div className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-medium ${
+                          tx.amount > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
                         }`}>
-                          {tx.type === 'deposit' ? '↓' : tx.type === 'withdrawal' ? '↑' : '↔'}
+                          {tx.type === 'deposit' ? 'D' : tx.type === 'withdrawal' ? 'W' : 'T'}
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{tx.description}</p>
-                          <p className="text-gray-500 text-xs">{new Date(tx.createdAt).toLocaleDateString('en-AU')}</p>
+                          <p className="text-sm">{tx.description}</p>
+                          <p className="text-slate-500 text-xs">{new Date(tx.createdAt).toLocaleDateString('en-AU')}</p>
                         </div>
                       </div>
-                      <span className={`font-semibold text-sm ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {tx.amount > 0 ? '+' : ''}{tx.amount} AUD
+                      <span className={`text-sm font-medium ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)} AUD
                       </span>
                     </div>
                   ))}
@@ -328,40 +349,38 @@ export default function Dashboard() {
 
         {/* Transactions Tab */}
         {activeTab === 'transactions' && (
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">All Transactions</h3>
+              <h3 className="text-sm font-medium">All Transactions</h3>
               <button
-                onClick={() => setShowTransactionModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm"
+                onClick={() => { setShowTransactionModal(true); setMessage('') }}
+                className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
               >
-                + New Transaction
+                New Transaction
               </button>
             </div>
             {allTransactions.length === 0 ? (
-              <p className="text-gray-500 text-center py-12">No transactions yet</p>
+              <p className="text-slate-500 text-sm text-center py-12">No transactions yet</p>
             ) : (
-              <div className="space-y-1">
+              <div>
                 {allTransactions.map(tx => (
-                  <div key={tx.id} className="flex items-center justify-between py-4 border-b border-gray-700/50 last:border-0">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        tx.amount > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                  <div key={tx.id} className="flex items-center justify-between py-3.5 border-b border-slate-800 last:border-0">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-medium ${
+                        tx.amount > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
                       }`}>
-                        {tx.type === 'deposit' ? '↓' : tx.type === 'withdrawal' ? '↑' : '↔'}
+                        {tx.type === 'deposit' ? 'D' : tx.type === 'withdrawal' ? 'W' : 'T'}
                       </div>
                       <div>
-                        <p className="font-medium">{tx.description}</p>
-                        <p className="text-gray-500 text-xs">{tx.type} · {new Date(tx.createdAt).toLocaleString('en-AU')}</p>
+                        <p className="text-sm">{tx.description}</p>
+                        <p className="text-slate-500 text-xs capitalize">{tx.type} &middot; {new Date(tx.createdAt).toLocaleString('en-AU')}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`font-semibold ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {tx.amount > 0 ? '+' : ''}{tx.amount} AUD
+                      <p className={`text-sm font-medium ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)} AUD
                       </p>
-                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
-                        {tx.status}
-                      </span>
+                      <span className="text-xs text-slate-500 capitalize">{tx.status}</span>
                     </div>
                   </div>
                 ))}
@@ -373,40 +392,49 @@ export default function Dashboard() {
         {/* Portfolio Tab */}
         {activeTab === 'portfolio' && (
           <div className="space-y-6">
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Investment Portfolio</h3>
+                <h3 className="text-sm font-medium">Investment Portfolio</h3>
                 <button
                   onClick={() => { setShowPortfolioModal(true); setMessage('') }}
-                  className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm"
+                  className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
                 >
-                  + Buy / Sell
+                  Trade
                 </button>
               </div>
               {portfolios.length === 0 ? (
-                <p className="text-gray-500 text-center py-12">暂无持仓，点击上方按钮买入</p>
+                <p className="text-slate-500 text-sm text-center py-12">No holdings yet. Use the Trade button to buy stocks.</p>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {portfolios.map(stock => (
-                    <div key={stock.id} className="bg-gray-700/50 rounded-xl p-4 border border-gray-600">
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="font-bold text-lg">{stock.symbol}</span>
-                      </div>
-                      <p className="text-gray-400 text-xs mb-2">{stockNames[stock.symbol] || stock.symbol}</p>
-                      <p className="font-semibold">${stock.avgPrice.toFixed(2)}</p>
-                      <p className="text-gray-500 text-xs">{stock.shares} shares</p>
-                      <p className="text-blue-400 text-sm font-medium mt-1">
-                        ${(stock.shares * stock.avgPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-slate-400 text-xs border-b border-slate-800">
+                        <th className="text-left py-2 font-medium">Symbol</th>
+                        <th className="text-left py-2 font-medium">Name</th>
+                        <th className="text-right py-2 font-medium">Shares</th>
+                        <th className="text-right py-2 font-medium">Avg. Price</th>
+                        <th className="text-right py-2 font-medium">Total Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {portfolios.map(stock => (
+                        <tr key={stock.id} className="border-b border-slate-800/50 last:border-0">
+                          <td className="py-3 font-medium">{stock.symbol}</td>
+                          <td className="py-3 text-slate-400">{stockNames[stock.symbol] || stock.symbol}</td>
+                          <td className="py-3 text-right font-mono">{stock.shares}</td>
+                          <td className="py-3 text-right font-mono">${stock.avgPrice.toFixed(2)}</td>
+                          <td className="py-3 text-right font-medium">${(stock.shares * stock.avgPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
 
             {/* Portfolio Chart */}
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold mb-4">Portfolio Performance</h3>
+            <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
+              <h3 className="text-sm font-medium mb-4">Portfolio Performance</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={(() => {
                   const total = portfolios.reduce((sum, p) => sum + p.shares * p.avgPrice, 0)
@@ -419,11 +447,11 @@ export default function Dashboard() {
                     { month: 'Feb', value: total },
                   ]
                 })()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="month" stroke="#6B7280" />
-                  <YAxis stroke="#6B7280" />
-                  <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }} />
-                  <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                  <XAxis dataKey="month" stroke="#475569" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#475569" tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ backgroundColor: '#0F172A', border: '1px solid #1E293B', borderRadius: '6px', fontSize: '12px' }} />
+                  <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={1.5} dot={{ fill: '#10B981', r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -433,33 +461,34 @@ export default function Dashboard() {
 
       {/* Transaction Modal */}
       {showTransactionModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md border border-gray-700">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">New Transaction</h3>
-              <button onClick={() => { setShowTransactionModal(false); setMessage('') }} className="text-gray-400 hover:text-white text-xl">✕</button>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-sm font-medium">New Transaction</h3>
+              <button onClick={() => { setShowTransactionModal(false); setMessage('') }} className="text-slate-400 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
 
             {message && (
-              <div className={`rounded-lg p-3 mb-4 text-sm ${
-                message.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+              <div className={`rounded-md p-3 mb-4 text-sm ${
+                messageType === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
               }`}>
                 {message}
               </div>
             )}
 
             <form onSubmit={handleTransaction} className="space-y-4">
-              {/* Transaction Type */}
               <div className="grid grid-cols-3 gap-2">
                 {['deposit', 'withdrawal', 'transfer'].map(type => (
                   <button
                     key={type}
                     type="button"
                     onClick={() => setTransactionForm({...transactionForm, type})}
-                    className={`py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                    className={`py-2 rounded-md text-sm font-medium capitalize transition-colors ${
                       transactionForm.type === type
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-400 hover:text-white'
+                        : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
                     }`}
                   >
                     {type}
@@ -468,12 +497,12 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="text-gray-400 text-sm mb-1 block">Amount (AUD)</label>
+                <label className="text-slate-400 text-sm mb-1.5 block">Amount (AUD)</label>
                 <input
                   type="number"
                   value={transactionForm.amount}
                   onChange={e => setTransactionForm({...transactionForm, amount: e.target.value})}
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   placeholder="0.00"
                   required
                   min="0.01"
@@ -482,24 +511,24 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="text-gray-400 text-sm mb-1 block">Description</label>
+                <label className="text-slate-400 text-sm mb-1.5 block">Description</label>
                 <input
                   type="text"
                   value={transactionForm.description}
                   onChange={e => setTransactionForm({...transactionForm, description: e.target.value})}
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Salary, Rent..."
+                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="e.g. Salary, Rent"
                 />
               </div>
 
               {transactionForm.type === 'transfer' && (
                 <div>
-                  <label className="text-gray-400 text-sm mb-1 block">To Account ID</label>
+                  <label className="text-slate-400 text-sm mb-1.5 block">Recipient Account ID</label>
                   <input
                     type="text"
                     value={transactionForm.toAccountId}
                     onChange={e => setTransactionForm({...transactionForm, toAccountId: e.target.value})}
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="Account ID"
                     required={transactionForm.type === 'transfer'}
                   />
@@ -509,27 +538,29 @@ export default function Dashboard() {
               <button
                 type="submit"
                 disabled={transactionLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 rounded-lg transition-colors"
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-md transition-colors"
               >
-                {transactionLoading ? 'Processing...' : 'Confirm'}
+                {transactionLoading ? 'Processing...' : 'Confirm Transaction'}
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Portfolio Buy/Sell Modal */}
+      {/* Portfolio Trade Modal */}
       {showPortfolioModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md border border-gray-700">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">Buy / Sell Stock</h3>
-              <button onClick={() => { setShowPortfolioModal(false); setMessage('') }} className="text-gray-400 hover:text-white text-xl">✕</button>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-sm font-medium">Trade Stock</h3>
+              <button onClick={() => { setShowPortfolioModal(false); setMessage('') }} className="text-slate-400 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
 
             {message && (
-              <div className={`rounded-lg p-3 mb-4 text-sm ${
-                message.startsWith('✅') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+              <div className={`rounded-md p-3 mb-4 text-sm ${
+                messageType === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
               }`}>
                 {message}
               </div>
@@ -542,10 +573,10 @@ export default function Dashboard() {
                     key={action}
                     type="button"
                     onClick={() => setPortfolioForm({ ...portfolioForm, action })}
-                    className={`py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                    className={`py-2 rounded-md text-sm font-medium capitalize transition-colors ${
                       portfolioForm.action === action
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-400 hover:text-white'
+                        ? action === 'buy' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                        : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
                     }`}
                   >
                     {action}
@@ -554,24 +585,24 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="text-gray-400 text-sm mb-1 block">股票代码 (如 AAPL, MSFT)</label>
+                <label className="text-slate-400 text-sm mb-1.5 block">Stock Symbol</label>
                 <input
                   type="text"
                   value={portfolioForm.symbol}
                   onChange={e => setPortfolioForm({ ...portfolioForm, symbol: e.target.value.toUpperCase() })}
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
                   placeholder="AAPL"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-gray-400 text-sm mb-1 block">股数</label>
+                <label className="text-slate-400 text-sm mb-1.5 block">Number of Shares</label>
                 <input
                   type="number"
                   value={portfolioForm.shares}
                   onChange={e => setPortfolioForm({ ...portfolioForm, shares: e.target.value })}
-                  className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   placeholder="10"
                   required
                   min="0.01"
@@ -581,12 +612,12 @@ export default function Dashboard() {
 
               {portfolioForm.action === 'buy' && (
                 <div>
-                  <label className="text-gray-400 text-sm mb-1 block">单价 (USD)</label>
+                  <label className="text-slate-400 text-sm mb-1.5 block">Price per Share (USD)</label>
                   <input
                     type="number"
                     value={portfolioForm.price}
                     onChange={e => setPortfolioForm({ ...portfolioForm, price: e.target.value })}
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-md px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="182.50"
                     required={portfolioForm.action === 'buy'}
                     min="0.01"
@@ -598,9 +629,13 @@ export default function Dashboard() {
               <button
                 type="submit"
                 disabled={portfolioLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 rounded-lg transition-colors"
+                className={`w-full disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-md transition-colors ${
+                  portfolioForm.action === 'buy'
+                    ? 'bg-green-600 hover:bg-green-500'
+                    : 'bg-red-600 hover:bg-red-500'
+                }`}
               >
-                {portfolioLoading ? '处理中...' : '确认'}
+                {portfolioLoading ? 'Processing...' : portfolioForm.action === 'buy' ? 'Place Buy Order' : 'Place Sell Order'}
               </button>
             </form>
           </div>
