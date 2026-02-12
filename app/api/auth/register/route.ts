@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     // Zod验证错误
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: '输入数据有误', details: error.errors },
+        { error: '输入数据有误', details: error.issues },
         { status: 400 }
       )
     }

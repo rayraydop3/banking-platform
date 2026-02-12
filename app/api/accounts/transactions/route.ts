@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/auth'
 import { z } from 'zod'
@@ -61,7 +62,7 @@ export const POST = withAuth(async (req, user) => {
       }
 
       // 用事务确保数据一致性
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // 1. 扣除源账户余额
         const fromAccount = await tx.account.update({
           where: { id: accountId },
@@ -106,7 +107,7 @@ export const POST = withAuth(async (req, user) => {
 
     } else if (type === 'deposit') {
       // 存款逻辑
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const updatedAccount = await tx.account.update({
           where: { id: accountId },
           data: { balance: { increment: amount } }
@@ -139,7 +140,7 @@ export const POST = withAuth(async (req, user) => {
           )
         }
   
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           const updatedAccount = await tx.account.update({
             where: { id: accountId },
             data: { balance: { decrement: amount } }

@@ -124,7 +124,7 @@ export const POST = withAuth(async (req, user) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors.map(e => e.message).join(', ') },
+        { error: error.issues.map((e: { message: string }) => e.message).join(', ') },
         { status: 400 }
       )
     }
